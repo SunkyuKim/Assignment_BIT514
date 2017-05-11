@@ -77,6 +77,7 @@ def preprocess(logger):
     return sampledf, genedf
 
 def prob1(X, y, test_X, test_y):
+    print X, len(y)
     train_size =len(y)
 
     pipe = Pipeline([
@@ -85,8 +86,11 @@ def prob1(X, y, test_X, test_y):
     ])
 
     N_FEATURES_OPTIONS = [100, 300, 1000, 3000]
+    #N_FEATURES_OPTIONS = [100]
     C_OPTIONS = [1e0, 1e1, 1e2, 1e3]
+    #C_OPTIONS = [1e0]
     GAMMA_OPTIONS = np.logspace(-2, 2, 5)
+    #GAMMA_OPTIONS = [0.03]
     param_grid = {
         'reduce_dim': [PCA(iterated_power=7), NMF()],
         'reduce_dim__n_components': N_FEATURES_OPTIONS,
@@ -95,19 +99,19 @@ def prob1(X, y, test_X, test_y):
     }
     reducer_labels = ['PCA', 'NMF']
 
-    grid = GridSearchCV(pipe, cv=5, n_jobs=3, param_grid=param_grid)
+    grid = GridSearchCV(pipe, cv=5, n_jobs=15, param_grid=param_grid)
     t0 = time.time()
 
     grid.fit(X, y)
     grid_fit = time.time() - t0
-    print("PipeLine fitted in %.3f s"
+    logger.info("PipeLine fitted in %.3f s"
           % grid_fit)
 
     cv_df = pd.DataFrame(grid.cv_results_)
     cv_df.to_csv("cv_result.csv")
 
-    grid_ratio = grid.best_estimator_.support_.shape[0] / train_size
-    print("Support vector ratio: %.3f" % grid_ratio)
+    #grid_ratio = grid.best_estimator_.support_.shape[0] / train_size
+    #print("Support vector ratio: %.3f" % grid_ratio)
 
     # mean_scores = np.array(grid.cv_results_['mean_test_score'])
     # # scores are in the order of param_grid iteration, which is alphabetical
