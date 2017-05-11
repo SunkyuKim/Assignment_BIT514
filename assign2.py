@@ -32,8 +32,8 @@ def main():
     logger.debug("Train_gene {}, Test_gene {}"
                  .format(train_genedf.shape, test_genedf.shape))
 
-
-    prob1(train_genedf.transpose(), train_sampledf['Sex'], test_genedf.transpose(), test_sampledf['Sex'])
+    prob1(train_genedf.transpose(), train_sampledf['Sex'],
+          test_genedf.transpose(), test_sampledf['Sex'], logger)
     prob2()
     prob3()
 
@@ -76,8 +76,7 @@ def preprocess(logger):
 
     return sampledf, genedf
 
-def prob1(X, y, test_X, test_y):
-    print X, len(y)
+def prob1(X, y, test_X, test_y, logger):
     train_size =len(y)
 
     pipe = Pipeline([
@@ -85,7 +84,7 @@ def prob1(X, y, test_X, test_y):
         ('classify', SVC())
     ])
 
-    N_FEATURES_OPTIONS = [100, 300, 1000, 3000]
+    N_FEATURES_OPTIONS = [100, 300]
     #N_FEATURES_OPTIONS = [100]
     C_OPTIONS = [1e0, 1e1, 1e2, 1e3]
     #C_OPTIONS = [1e0]
