@@ -1,13 +1,17 @@
 import time
-
 import copy
 import logging
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA, NMF
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, LeaveOneOut
+from sklearn.linear_model import ElasticNet, LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
+from sklearn.metrics import roc_curve, auc
+from matplotlib import pyplot as plt
 
 import DataManager
 
@@ -34,8 +38,12 @@ def main():
 
     prob1(train_genedf.transpose(), train_sampledf['Sex'],
           test_genedf.transpose(), test_sampledf['Sex'], logger)
-    prob2()
-    prob3()
+
+    # prob2(train_genedf.transpose(), train_sampledf['tnm.stage'],
+    #       test_genedf.transpose(), test_sampledf['tnm.stage'], logger)
+    #
+    # prob3(train_genedf.transpose(), train_sampledf['tnm.stage'],
+    #      test_genedf.transpose(), test_sampledf['tnm.stage'], logger)
 
 def preprocess(logger):
     logger.info("Loading Data...")
@@ -77,56 +85,333 @@ def preprocess(logger):
     return sampledf, genedf
 
 def prob1(X, y, test_X, test_y, logger):
-    train_size =len(y)
+    y = map(lambda x : 1 if x=='M' else 0, y)
+    test_y = map(lambda x : 1 if x=='M' else 0, test_y)
 
-    pipe = Pipeline([
-        ('reduce_dim', PCA()),
-        ('classify', SVC())
-    ])
+    f, axarr = plt.subplots(1,2, figsize=(12,6))
+    lw = 2
 
-    N_FEATURES_OPTIONS = [100, 300]
-    #N_FEATURES_OPTIONS = [100]
-    C_OPTIONS = [1e0, 1e1, 1e2, 1e3]
-    #C_OPTIONS = [1e0]
-    GAMMA_OPTIONS = np.logspace(-2, 2, 5)
-    #GAMMA_OPTIONS = [0.03]
+    axarr[0].plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    axarr[1].plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+
+    axarr[0].xlabel('False Positive Rate')
+    axarr[0].ylabel('True Positive Rate')
+    axarr[1].xlabel('False Positive Rate')
+    axarr[1].ylabel('True Positive Rate')
+    axarr[0].title('Problem 1 ROC Curves - LOO')
+    axarr[1].title('Problem 1 ROC Curves - TEST')
+
+    # Logistic Regression - Ridege
+    lr = LogisticRegression()
     param_grid = {
-        'reduce_dim': [PCA(iterated_power=7), NMF()],
-        'reduce_dim__n_components': N_FEATURES_OPTIONS,
-        'classify__C': C_OPTIONS,
-        'classify__gamma' : GAMMA_OPTIONS
+        'C':[0.01,0.1,1,10,100]
     }
-    reducer_labels = ['PCA', 'NMF']
-
-    grid = GridSearchCV(pipe, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
     t0 = time.time()
-
     grid.fit(X, y)
     grid_fit = time.time() - t0
-    logger.info("PipeLine fitted in %.3f s"
+    logger.info("Model fitted in %.3f s"
           % grid_fit)
 
-    cv_df = pd.DataFrame(grid.cv_results_)
-    cv_df.to_csv("cv_result.csv")
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = LogisticRegression(C=grid.best_params_['C'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
 
-    #grid_ratio = grid.best_estimator_.support_.shape[0] / train_size
-    #print("Support vector ratio: %.3f" % grid_ratio)
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[1].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
 
-    # mean_scores = np.array(grid.cv_results_['mean_test_score'])
-    # # scores are in the order of param_grid iteration, which is alphabetical
-    # mean_scores = mean_scores.reshape(len(C_OPTIONS), -1, len(N_FEATURES_OPTIONS))
-    # # select score for best C
-    # mean_scores = mean_scores.max(axis=0)
-    # bar_offsets = (np.arange(len(N_FEATURES_OPTIONS)) *
-    #                (len(reducer_labels) + 1) + .5)
+    # Logistic Regression - Lasso
+    lr = LogisticRegression(penalty='l1')
+    param_grid = {
+        'C':[0.01,0.1,1,10,100]
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
 
-    pass
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
 
-def prob2():
-    pass
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[1].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
 
-def prob3():
-    pass
+    # K Nearest Neighborhood classifier
+    lr = KNeighborsClassifier()
+    param_grid = {
+        'n_neighbors':[3,4,5,6,7]
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+
+    best_n = str(grid.best_params_['n_neighbors'])
+    axarr[1].plot(fpr, tpr, color='darkorange',
+             lw=lw, label='KNN[N=%s] (AUC = %0.2f)' % (best_n,roc_auc))
+
+    plt.legend(loc="lower right")
+    plt.savefig("results/ass2_prob1.png")
+
+def prob2(X, y, test_X, test_y, logger):
+    # Logistic Regression - Ridege
+    lr = ElasticNet(l1_ratio=0)
+    param_grid = {
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = ElasticNet(l1_ratio=0)
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    pred = grid.predict(test_X)
+    rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
+    logger.info("LOO)Linear Regression - Ridge : %s"%str(loo_rmse))
+    logger.info("TEST)Linear Regression - Ridge : %s"%str(rmse))
+
+
+    # Logistic Regression - Lasso
+    lr = ElasticNet(l1_ratio=1)
+    param_grid = {
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = ElasticNet(l1_ratio=1)
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    pred = grid.predict(test_X)
+    rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
+    logger.info("LOO)Linear Regression - Lasso : %s"%str(loo_rmse))
+    logger.info("TEST)Linear Regression - Lasso : %s"%str(rmse))
+
+
+    lr = DecisionTreeRegressor()
+    param_grid = {
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = DecisionTreeRegressor()
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    pred = grid.predict(test_X)
+    rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
+    logger.info("LOO)Decision Tree Regression : %s"%str(loo_rmse))
+    logger.info("TEST)Decision Tree Regression : %s"%str(rmse))
+
+def prob3(X, y, test_X, test_y, logger):
+    y = map(lambda x : 0 if x in [0,1,2] else 1, y)
+    test_y = map(lambda x : 0 if x in [0,1,2] else 1, test_y)
+    f, axarr = plt.subplots(1,2, figsize=(8,4))
+    lw = 2
+
+    axarr[0].plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    axarr[1].plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+
+    axarr[0].xlabel('False Positive Rate')
+    axarr[0].ylabel('True Positive Rate')
+    axarr[1].xlabel('False Positive Rate')
+    axarr[1].ylabel('True Positive Rate')
+    axarr[0].title('Problem 3 ROC Curves - LOO')
+    axarr[1].title('Problem 3 ROC Curves - TEST')
+
+    # Logistic Regression - Ridege
+    lr = LogisticRegression()
+    param_grid = {
+        'C':[0.01,0.1,1,10,100]
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = LogisticRegression(C=grid.best_params_['C'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[1].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+
+    # Logistic Regression - Lasso
+    lr = LogisticRegression(penalty='l1')
+    param_grid = {
+        'C':[0.01,0.1,1,10,100]
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[1].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+
+    # K Nearest Neighborhood classifier
+    lr = KNeighborsClassifier()
+    param_grid = {
+        'n_neighbors':[3,4,5,6,7]
+    }
+    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    t0 = time.time()
+    grid.fit(X, y)
+    grid_fit = time.time() - t0
+    logger.info("Model fitted in %.3f s"
+          % grid_fit)
+
+    loo = LeaveOneOut()
+    loo_pred = []
+    loo_answer = []
+    for train_index, test_index  in loo.split(X):
+        X_loo_train, X_loo_test = X[train_index], X[test_index]
+        y_loo_train, y_loo_test = y[train_index], y[test_index]
+        loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
+        loo_estimator.fit(X_loo_train, y_loo_train)
+        loo_pred.append(loo_estimator.predict(X_loo_test))
+        loo_answer.append(y_loo_test)
+
+    fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
+    roc_auc = auc(fpr, tpr)
+    axarr[0].plot(fpr, tpr, color='cornflowerblue',
+             lw=lw, label='Logistic Regression - Ridge (AUC = %0.2f)' % roc_auc)
+    pred = grid.predict(test_X)
+    fpr, tpr, _ = roc_curve(test_y, pred)
+    roc_auc = auc(fpr, tpr)
+
+    best_n = str(grid.best_params_['n_neighbors'])
+    axarr[1].plot(fpr, tpr, color='darkorange',
+             lw=lw, label='KNN[N=%s] (AUC = %0.2f)' % (best_n,roc_auc))
+
+    plt.legend(loc="lower right")
+    plt.savefig("results/ass2_prob3.png")
 
 def setlogger(logname):
     logger = logging.getLogger(logname)
