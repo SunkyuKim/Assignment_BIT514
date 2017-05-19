@@ -43,8 +43,8 @@ def main():
     logger.debug("Train_gene {}, Test_gene {}"
                  .format(train_genedf.shape, test_genedf.shape))
 
-    prob1(train_genedf.transpose(), train_sampledf['Sex'],
-          test_genedf.transpose(), test_sampledf['Sex'], logger)
+    # prob1(train_genedf.transpose(), train_sampledf['Sex'],
+    #       test_genedf.transpose(), test_sampledf['Sex'], logger)
 
     prob2(train_genedf.transpose(), train_sampledf['tnm.stage'],
           test_genedf.transpose(), test_sampledf['tnm.stage'], logger)
@@ -255,7 +255,7 @@ def prob2(X, y, test_X, test_y, logger):
           % grid_fit)
 
 
-    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(loo_answer)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
     rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
     logger.info("LOO)Linear Regression - Ridge : %s"%str(loo_rmse))
@@ -287,7 +287,7 @@ def prob2(X, y, test_X, test_y, logger):
     logger.info("Cv fitted in %.3f s"
           % grid_fit)
 
-    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(loo_answer)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
     rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
     logger.info("LOO)Linear Regression - Lasso : %s"%str(loo_rmse))
@@ -318,7 +318,7 @@ def prob2(X, y, test_X, test_y, logger):
     logger.info("Cv fitted in %.3f s"
           % grid_fit)
 
-    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
+    loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(loo_answer)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
     rmse = (sum(np.square(np.array(pred) - np.array(test_y)))/len(pred))**0.5
     logger.info("LOO)Decision Tree Regression : %s"%str(loo_rmse))
