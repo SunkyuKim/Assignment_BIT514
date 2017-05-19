@@ -114,8 +114,8 @@ def prob1(X, y, test_X, test_y, logger):
     # Logistic Regression - Ridge
     lr = LogisticRegression()
     param_grid = {
-        # 'C':[0.01,0.1,1,10,100]
-        'C':[1]
+        'C':[0.01,0.1,1,10,100]
+        # 'C':[1]
     }
     grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
