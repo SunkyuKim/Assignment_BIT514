@@ -124,23 +124,19 @@ def prob1(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = LogisticRegression(C=grid.best_params_['C'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-
-    loo_estimator = LogisticRegression(C=grid.best_params_['C'])
-    p = Pool(num_job)
-    print p.map(CvClass(loo_estimator, X, y), loo.split(X))
-    exit()
-
-
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = LogisticRegression(C=grid.best_params_['C'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append(loo_estimator.predict(X_loo_test))
-        loo_answer.append(y_loo_test)
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
     roc_auc = auc(fpr, tpr)
@@ -164,16 +160,19 @@ def prob1(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append(loo_estimator.predict(X_loo_test))
-        loo_answer.append(y_loo_test)
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
     roc_auc = auc(fpr, tpr)
@@ -197,16 +196,19 @@ def prob1(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append(loo_estimator.predict(X_loo_test))
-        loo_answer.append(y_loo_test)
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
     roc_auc = auc(fpr, tpr)
@@ -238,16 +240,20 @@ def prob2(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = ElasticNet(l1_ratio=0)
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = ElasticNet(l1_ratio=0)
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
+
 
     loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
@@ -266,16 +272,20 @@ def prob2(X, y, test_X, test_y, logger):
     grid_fit = time.time() - t0
     logger.info("Model fitted in %.3f s"
           % grid_fit)
+
+    loo_estimator = ElasticNet(l1_ratio=1)
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = ElasticNet(l1_ratio=1)
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
@@ -293,16 +303,20 @@ def prob2(X, y, test_X, test_y, logger):
     grid_fit = time.time() - t0
     logger.info("Model fitted in %.3f s"
           % grid_fit)
+
+    loo_estimator = DecisionTreeRegressor()
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = DecisionTreeRegressor()
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     loo_rmse = (sum(np.square(np.array(loo_pred) - np.array(test_y)))/len(loo_pred))**0.5
     pred = grid.predict(test_X)
@@ -342,16 +356,19 @@ def prob3(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = LogisticRegression(C=grid.best_params_['C'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = LogisticRegression(C=grid.best_params_['C'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
     roc_auc = auc(fpr, tpr)
@@ -375,16 +392,19 @@ def prob3(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+    loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = LogisticRegression(penalty='l1', C=grid.best_params_['C'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
     roc_auc = auc(fpr, tpr)
@@ -408,16 +428,20 @@ def prob3(X, y, test_X, test_y, logger):
     logger.info("Model fitted in %.3f s"
           % grid_fit)
 
+
+    loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
     loo = LeaveOneOut()
+    t0 = time.time()
+    p = Pool(num_job)
+    cv_result = p.map(CvClass(loo_estimator, X, y), loo.split(X))
     loo_pred = []
     loo_answer = []
-    for train_index, test_index  in loo.split(X):
-        X_loo_train, X_loo_test = X[train_index], X[test_index]
-        y_loo_train, y_loo_test = y[train_index], y[test_index]
-        loo_estimator = KNeighborsClassifier(n_neighbors=grid.best_params_['n_neighbors'])
-        loo_estimator.fit(X_loo_train, y_loo_train)
-        loo_pred.append += loo_estimator.predict(X_loo_test)
-        loo_answer += y_loo_test
+    for v in cv_result:
+        loo_pred += v[0].tolist()
+        loo_answer += v[1].tolist()
+    grid_fit = time.time() - t0
+    logger.info("Cv fitted in %.3f s"
+          % grid_fit)
 
     best_n = str(grid.best_params_['n_neighbors'])
     fpr, tpr, _ = roc_curve(loo_answer, loo_pred)
