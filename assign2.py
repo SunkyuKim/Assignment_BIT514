@@ -13,11 +13,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.metrics import roc_curve, auc
 import matplotlib
+if platform.system()=="Linux":
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import DataManager
 
-if platform.system()=="Linux":
-    matplotlib.use("Agg")
+
 
 logname = "Assignment2"
 
