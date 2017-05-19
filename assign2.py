@@ -19,8 +19,9 @@ if platform.system()=="Linux":
 import matplotlib.pyplot as plt
 import DataManager
 
-
-
+num_job = 8
+if platform.system()=="Linux":
+    num_job = 40
 logname = "Assignment2"
 
 def main():
@@ -116,7 +117,7 @@ def prob1(X, y, test_X, test_y, logger):
         # 'C':[0.01,0.1,1,10,100]
         'C':[1]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -128,7 +129,7 @@ def prob1(X, y, test_X, test_y, logger):
     loo_answer = []
 
     loo_estimator = LogisticRegression(C=grid.best_params_['C'])
-    p = Pool(2)
+    p = Pool(num_job)
     print p.map(CvClass(loo_estimator, X, y), loo.split(X))
     exit()
 
@@ -156,7 +157,7 @@ def prob1(X, y, test_X, test_y, logger):
     param_grid = {
         'C':[0.01,0.1,1,10,100]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -189,7 +190,7 @@ def prob1(X, y, test_X, test_y, logger):
     param_grid = {
         'n_neighbors':[3,4,5,6,7]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -230,7 +231,7 @@ def prob2(X, y, test_X, test_y, logger):
     lr = ElasticNet(l1_ratio=0)
     param_grid = {
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -259,7 +260,7 @@ def prob2(X, y, test_X, test_y, logger):
     lr = ElasticNet(l1_ratio=1)
     param_grid = {
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -286,7 +287,7 @@ def prob2(X, y, test_X, test_y, logger):
     lr = DecisionTreeRegressor()
     param_grid = {
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -334,7 +335,7 @@ def prob3(X, y, test_X, test_y, logger):
     param_grid = {
         'C':[0.01,0.1,1,10,100]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -367,7 +368,7 @@ def prob3(X, y, test_X, test_y, logger):
     param_grid = {
         'C':[0.01,0.1,1,10,100]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
@@ -400,7 +401,7 @@ def prob3(X, y, test_X, test_y, logger):
     param_grid = {
         'n_neighbors':[3,4,5,6,7]
     }
-    grid = GridSearchCV(lr, cv=5, n_jobs=15, param_grid=param_grid)
+    grid = GridSearchCV(lr, cv=5, n_jobs=num_job, param_grid=param_grid)
     t0 = time.time()
     grid.fit(X, y)
     grid_fit = time.time() - t0
