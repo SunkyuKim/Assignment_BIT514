@@ -12,6 +12,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.metrics import roc_curve, auc
+from multiprocessing import Pool
 import matplotlib
 if platform.system()=="Linux":
     matplotlib.use("Agg")
@@ -125,6 +126,12 @@ def prob1(X, y, test_X, test_y, logger):
     loo = LeaveOneOut()
     loo_pred = []
     loo_answer = []
+
+    loo_estimator = LogisticRegression(C=grid.best_params_['C'])
+    p = Pool(2)
+    print p.map(CvClass(loo_estimator, X, y), loo.split(X))
+    exit()
+
 
     for train_index, test_index  in loo.split(X):
         X_loo_train, X_loo_test = X[train_index], X[test_index]
@@ -441,6 +448,22 @@ def setlogger(logname):
     logger.addHandler(streamHandler)
 
     return logger
+
+class CvClass(object):
+    def __init__(self, est, X, y):
+        self.est = est
+        self.X = X
+        self.y = y
+    def __call__(self, index):
+        return loo_cv(self.est, index, self.X, self.y)
+
+def loo_cv(est, index, X ,y):
+    train_index, test_index = index
+    X_loo_train, X_loo_test = X[train_index], X[test_index]
+    y_loo_train, y_loo_test = y[train_index], y[test_index]
+    loo_estimator = est
+    loo_estimator.fit(X_loo_train, y_loo_train)
+    return loo_estimator.predict(X_loo_test), y_loo_test
 
 if __name__ == "__main__":
     main()
